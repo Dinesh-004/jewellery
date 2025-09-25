@@ -243,6 +243,41 @@ app.post('/verify-payment', (req, res) => {
   }
 });
 
+app.post('/change-password', (req, res) => {
+  const { mobileNumber, oldPassword, newPassword } = req.body;
+
+  if (!mobileNumber || !oldPassword || !newPassword) {
+    return res.status(400).json({ success: false, message: 'All fields are required' });
+  }
+
+  // Check if user exists and old password matches
+  db.query(
+    'SELECT password FROM users WHERE mobile_number = ?',
+    [mobileNumber],
+    (err, results) => {
+      if (err) return res.status(500).json({ success: false, message: 'Database error' });
+      if (results.length === 0)
+        return res.status(400).json({ success: false, message: 'User not found' });
+
+      const dbPassword = results[0].password;
+      if (dbPassword !== oldPassword) {
+        return res.status(400).json({ success: false, message: 'Old password is incorrect' });
+      }
+
+      // Update password
+      db.query(
+        'UPDATE users SET password = ? WHERE mobile_number = ?',
+        [newPassword, mobileNumber],
+        (err2, result2) => {
+          if (err2) return res.status(500).json({ success: false, message: 'Failed to update password' });
+
+          res.json({ success: true, message: 'Password changed successfully' });
+        }
+      );
+    }
+  );
+});
+
 
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
