@@ -40,6 +40,10 @@ db.getConnection((err, connection) => {
   }
 });
 
+app.get('/', (req, res) => {
+  res.send('Hello, World!');
+});
+
 // Route 1: Send OTP
 app.post('/send-otp', async (req, res) => {
   const { mobileNumber } = req.body;
