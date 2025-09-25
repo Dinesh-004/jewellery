@@ -75,51 +75,58 @@ app.post('/send-otp', async (req, res) => {
   }
 });
 
-// Route 2: Verify OTP and save user
+// verify OTP route (just verify)
 app.post('/verify-otp', (req, res) => {
-  const { name, email, mobileNumber, password, otp } = req.body;
+  const { mobileNumber, otp } = req.body;
 
-  if (!name || !email || !mobileNumber || !password || !otp) {
-    return res.status(400).json({ success: false, message: 'All fields are required' });
+  if (!mobileNumber || !otp) {
+    return res.status(400).json({ success: false, message: 'Mobile number and OTP required' });
   }
 
-  // Check OTP in database
   db.query(
     'SELECT otp FROM otp_store WHERE mobile_number = ?',
     [mobileNumber],
     (err, results) => {
-      if (err) {
-        console.error('DB Error:', err);
-        return res.status(500).json({ success: false, message: 'Database error' });
-      }
+      if (err) return res.status(500).json({ success: false, message: 'Database error' });
 
-      if (results.length === 0) {
-        return res.status(400).json({ success: false, message: 'OTP not found' });
-      }
-
-      if (results[0].otp === otp) {
-        // OTP matches, save user
-        db.query(
-          'INSERT INTO users (name, email, mobile_number, password) VALUES (?, ?, ?, ?)',
-          [name, email, mobileNumber, password], // ⚠️ Hash passwords in production!
-          (err2, result2) => {
-            if (err2) {
-              console.error('DB Error:', err2);
-              return res.status(500).json({ success: false, message: 'Failed to register user' });
-            }
-
-            // Delete OTP after successful verification
-            db.query('DELETE FROM otp_store WHERE mobile_number = ?', [mobileNumber]);
-
-            res.json({ success: true, message: 'OTP verified and user registered successfully' });
-          }
-        );
-      } else {
+      if (results.length === 0 || results[0].otp !== otp) {
         return res.status(400).json({ success: false, message: 'Invalid OTP' });
       }
+
+      res.json({ success: true, message: 'OTP verified successfully' });
     }
   );
 });
+
+// register user route (after OTP verified)
+app.post('/register-user', (req, res) => {
+  const { name, email, mobileNumber, password } = req.body;
+
+  if (!name || !email || !mobileNumber || !password) {
+    return res.status(400).json({ success: false, message: 'All fields required' });
+  }
+
+  // Check if mobile number already exists
+  db.query('SELECT id FROM users WHERE mobile_number = ?', [mobileNumber], (err, results) => {
+    if (err) return res.status(500).json({ success: false, message: 'Database error' });
+    if (results.length > 0) return res.status(400).json({ success: false, message: 'Mobile number already registered' });
+
+    // Insert user
+    db.query(
+      'INSERT INTO users (name, email, mobile_number, password) VALUES (?, ?, ?, ?)',
+      [name, email, mobileNumber, password], // ⚠️ hash password in production
+      (err2, result2) => {
+        if (err2) return res.status(500).json({ success: false, message: 'Failed to register user' });
+
+        // Delete OTP after registration
+        db.query('DELETE FROM otp_store WHERE mobile_number = ?', [mobileNumber]);
+
+        res.json({ success: true, message: 'User registered successfully' });
+      }
+    );
+  });
+});
+
 
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
