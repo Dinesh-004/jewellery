@@ -160,7 +160,7 @@ app.post('/forgot/reset-password', (req, res) => {
     return res.status(400).json({ success: false, message: 'Mobile number and new password required' });
   }
 
-  const sql = 'UPDATE users SET password = ? WHERE mobile = ?';
+  const sql = 'UPDATE users SET password = ? WHERE mobile_number = ?';
   db.query(sql, [newPassword, mobileNumber], (err, result) => {
     if (err) {
       console.error('DB Error:', err);
