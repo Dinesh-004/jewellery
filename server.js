@@ -139,7 +139,7 @@ app.post('/login', (req, res) => {
   }
 
   db.query(
-    'SELECT * FROM users WHERE mobile = ? AND password = ?',
+    'SELECT * FROM users WHERE mobile_number = ? AND password = ?',
     [mobileNumber, password],
     (err, result) => {
       if (err) return res.status(500).json({ success: false, message: 'Database error', err });
