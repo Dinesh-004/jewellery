@@ -138,6 +138,35 @@ app.post('/register-user', (req, res) => {
   });
 });
 
+// Get user details by mobile number
+app.get('/get-user-details', (req, res) => {
+  const { mobileNumber } = req.query; // Pass mobileNumber as query param
+
+  if (!mobileNumber) {
+    return res.status(400).json({ success: false, message: 'Mobile number is required' });
+  }
+
+  // Query the database for the user
+  db.query(
+    'SELECT id, name, email, mobile_number FROM users WHERE mobile_number = ?',
+    [mobileNumber],
+    (err, results) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ success: false, message: 'Database error' });
+      }
+
+      if (results.length === 0) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+      }
+
+      // Return the first matched user
+      res.json({ success: true, user: results[0] });
+    }
+  );
+});
+
+
 app.post('/login', (req, res) => {
   const { mobileNumber, password } = req.body;
 
