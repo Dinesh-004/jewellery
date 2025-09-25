@@ -131,6 +131,50 @@ app.post('/register-user', (req, res) => {
   });
 });
 
+app.post('/login', (req, res) => {
+  const { mobileNumber, password } = req.body;
+
+  if (!mobileNumber || !password) {
+    return res.status(400).json({ success: false, message: 'Mobile and password required' });
+  }
+
+  db.query(
+    'SELECT * FROM users WHERE mobile = ? AND password = ?',
+    [mobileNumber, password],
+    (err, result) => {
+      if (err) return res.status(500).json({ success: false, message: 'Database error', err });
+
+      if (result.length > 0) {
+        return res.json({ success: true, message: 'Login successful', user: result[0] });
+      } else {
+        return res.status(401).json({ success: false, message: 'Invalid mobile or password' });
+      }
+    }
+  );
+});
+
+app.post('/forgot/reset-password', (req, res) => {
+  const { mobileNumber, newPassword } = req.body;
+
+  if (!mobileNumber || !newPassword) {
+    return res.status(400).json({ success: false, message: 'Mobile number and new password required' });
+  }
+
+  const sql = 'UPDATE users SET password = ? WHERE mobile = ?';
+  db.query(sql, [newPassword, mobileNumber], (err, result) => {
+    if (err) {
+      console.error('DB Error:', err);
+      return res.status(500).json({ success: false, message: 'Database error', error: err.message });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    res.json({ success: true, message: 'Password reset successfully ✅' });
+  });
+});
+
 
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
